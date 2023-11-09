@@ -4,3 +4,8 @@ eth_addresses*
 non_eth*
 .next
 
+
+
+# Added by cargo
+
+/target
