@@ -1,40 +1,47 @@
 # VC Vest
 
 <p align="center">
-  <img src="./assets/vc-vest1.png" width="300">
+  <img src="./assets/vc-vest1.png" width="500">
 </p>
 
-Manage vesting information for a fund that has many token positions.
+Query the chain for all contracts that may have some tokens that are claimable by a list of addresses.
 
-## The frontend
-
-We have known onchain vesting contracts. This is just a frontend to consolidate all of these into a single page. The idea is that BCAP team members can directly see what is available to claim and actually claim directly from this page.
-
-## Message Bus
-
-We should have some system to push notification to the BCAP slack whenever there are significant vesting events.
-
-## Calendar
-
-Put the vesting events directly in a gmail calendar.
-
-## The main query
-
-Given a wallet address, detect if it is the own of any smart contracts that hold tokens.
-
-Methodology:
-
-Index all the smart contracts
-
-Get all the smart contracts that have "owner", "recipient" or "beneficiary" and persist this value as a key
-
-
-
-## How to run this 
+## How to use
 
 Get the slots data set:
 
 ``` bash
+mkdir data
+cd data
 curl -s https://raw.githubusercontent.com/paradigmxyz/paradigm-data-portal/main/datasets/ethereum_slots/README.md | grep -oE "https://datasets.*parquet" | aria2c -i -    
 ```
 
+Build a list of addresses (this is your EOAs):
+
+``` bash
+echo "0x...123" > data/eth_addresses.txt
+```
+
+Run the script to identify contracts:
+
+``` bash
+export ETHERSCAN_API_KEY=<insert your etherscan api key>
+export ALCHEMY_API_KEY=<insert your alchemy api key>
+pip install polars
+python get_vesting_contracts.py "data/ethereum_slots*.parquet" data/eth_addresses.txt
+```
+
+Copy over the output to the frontend:
+
+``` bash
+cp out/vesting.json fe/public/
+```
+
+spin up the frontend:
+
+``` bash
+cd fe
+bun run start
+```
+
+Voila!

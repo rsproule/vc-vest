@@ -94,5 +94,5 @@ for address in contract_addresses:
     }
     d[address] = contract_data
 
-with open('out/token_balances.json', 'w') as f:
+with open('out/vesting.json', 'w') as f:
     json.dump(d, f)
