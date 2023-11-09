@@ -25,3 +25,14 @@ Methodology:
 Index all the smart contracts
 
 Get all the smart contracts that have "owner", "recipient" or "beneficiary" and persist this value as a key
+
+
+
+## How to run this 
+
+Get the slots data set:
+
+``` bash
+curl -s https://raw.githubusercontent.com/paradigmxyz/paradigm-data-portal/main/datasets/ethereum_slots/README.md | grep -oE "https://datasets.*parquet" | aria2c -i -    
+```
+
