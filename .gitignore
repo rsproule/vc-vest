@@ -9,3 +9,4 @@ non_eth*
 # Added by cargo
 
 /target
+data/

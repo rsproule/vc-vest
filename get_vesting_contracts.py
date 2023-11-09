@@ -1,11 +1,14 @@
+import csv
+import json
 import polars as pl
 import sys
 import requests
 import os
-API_KEY = os.getenv('ALCHEMY_API_KEY')
-assert API_KEY is not None, "API_KEY is not set in environment variables"
-alchemy_url = f"https://eth-mainnet.g.alchemy.com/v2/{API_KEY}"
-
+ALCHEMY_API_KEY = os.getenv('ALCHEMY_API_KEY')
+assert ALCHEMY_API_KEY  is not None, "API_KEY is not set in environment variables"
+alchemy_url = f"https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_API_KEY}"
+ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
+assert ETHERSCAN_API_KEY is not None, "ETHERSCAN_API_KEY is not set in environment variables"
 
 def get_addresses(file_path):
     try:
@@ -41,7 +44,13 @@ def get_token_balances(address):
     for balance in parsed_token_balances:
         metadata = get_token_metadata(balance['contractAddress'])
         balance.update(metadata)
+        try:
+            balance['units'] = int(balance['tokenBalance'], 16) / (10 ** balance['decimals'])
+        except Exception:
+            print(f"Error parsing token balance for {balance['contractAddress']}")
+            balance['units'] = 0
     
+    # do some check for if this is an obvious spam token
     return parsed_token_balances
 
 def get_token_metadata(address): 
@@ -60,15 +69,30 @@ def get_token_metadata(address):
     response_json = response.json()
     return response_json["result"]
 
+def get_contract_abi(address): 
+    etherscan_req_url = f"https://api.etherscan.io/api?module=contract&action=getabi&address={address}&apikey={ETHERSCAN_API_KEY}"
+    response = requests.get(etherscan_req_url)
+    return response.json()["result"]
+
+def is_vesting_like(abi):
+    return any(keyword in abi for keyword in ["release", "cliff", "duration", "vesting", "vest", "lockup", "lock", "unlock", "unlocking", "claim"])
 
 slots_df = pl.scan_parquet(sys.argv[1])
 addresses = get_addresses(sys.argv[2])
 touched_contracts_df = get_touched_contracts_df(slots_df, addresses)
 contract_addresses = ['0x' + address for address in touched_contracts_df['contract_address'].to_list()]
 
-
+d = {}
 for address in contract_addresses:
     token_balances = get_token_balances(address)
-    print(token_balances)
+    abi = get_contract_abi(address)
+    is_vestingish = is_vesting_like(abi)
+    contract_data = {
+        'address': address,
+        'token_balances': token_balances,
+        'is_vestingish': is_vestingish
+    }
+    d[address] = contract_data
 
-touched_contracts_df.write_csv('out/contracts.csv')
+with open('out/token_balances.json', 'w') as f:
+    json.dump(d, f)
