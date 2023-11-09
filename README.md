@@ -1,6 +1,8 @@
 # VC Vest
 
-![VC Vest](./assets/vc-vest1.png)
+<p align="center">
+  <img src="./assets/vc-vest1.png" width="300">
+</p>
 
 Manage vesting information for a fund that has many token positions.
 

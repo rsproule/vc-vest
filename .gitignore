@@ -10,3 +10,4 @@ non_eth*
 
 /target
 data/
+out/token*
