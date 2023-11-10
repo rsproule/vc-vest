@@ -22,7 +22,7 @@ export default function ContractEntry() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch("/token_balances.json");
+      const response = await fetch("/vesting.json");
       const data: Record<string, Data> = await response.json();
       setData(data);
     };
@@ -46,7 +46,7 @@ export default function ContractEntry() {
       {filteredData.map(([key, value]) => (
         <div key={key}>
           <h2>
-            Vesting contract address:{" "}
+            Possible Vesting contract address:{" "}
             <a href={`https://etherscan.io/address/${value.address}`}>
               {value.address}
             </a>

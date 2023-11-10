@@ -1,5 +1,5 @@
-import csv
 import json
+import time
 import polars as pl
 import sys
 import requests
@@ -43,6 +43,11 @@ def get_token_balances(address):
     parsed_token_balances = [{'contractAddress': balance['contractAddress'], 'tokenBalance': balance['tokenBalance']} for balance in token_balances]
     for balance in parsed_token_balances:
         metadata = get_token_metadata(balance['contractAddress'])
+        if metadata is None:
+            continue
+        if metadata['symbol'] == 'WETH':
+            parsed_token_balances.remove(balance)
+            continue
         balance.update(metadata)
         try:
             balance['units'] = int(balance['tokenBalance'], 16) / (10 ** balance['decimals'])
@@ -55,24 +60,47 @@ def get_token_balances(address):
 
 def get_token_metadata(address): 
     payload = {
-    "id": 1,
-    "jsonrpc": "2.0",
-    "method": "alchemy_getTokenMetadata",
-    "params": [address]
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "alchemy_getTokenMetadata",
+        "params": [address]
     }
     headers = {
         "accept": "application/json",
         "content-type": "application/json"
     }
 
-    response = requests.post(alchemy_url, json=payload, headers=headers)
+    try:
+        response = requests.post(alchemy_url, json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        print ("Http Error:",errh)
+        return None
+    except requests.exceptions.ConnectionError as errc:
+        print ("Error Connecting:",errc)
+        return None
+    except requests.exceptions.Timeout as errt:
+        print ("Timeout Error:",errt)
+        return None
+    except requests.exceptions.RequestException as err:
+        print ("Something went wrong",err)
+        return None
+
     response_json = response.json()
     return response_json["result"]
 
 def get_contract_abi(address): 
     etherscan_req_url = f"https://api.etherscan.io/api?module=contract&action=getabi&address={address}&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(etherscan_req_url)
-    return response.json()["result"]
+    for i in range(5):  # Retry up to 5 times
+        try:
+            response = requests.get(etherscan_req_url)
+            response.raise_for_status()  # Raises stored HTTPError, if one occurred
+            return response.json()["result"]
+        except requests.exceptions.HTTPError:
+            print(f"HTTPError occurred for {address}. Retrying...")
+            time.sleep(2 ** i)  # Exponential backoff
+    print(f"Failed to get contract ABI for {address} after 5 attempts")
+    return None
 
 def is_vesting_like(abi):
     return any(keyword in abi for keyword in ["release", "cliff", "duration", "vesting", "vest", "lockup", "lock", "unlock", "unlocking", "claim"])
