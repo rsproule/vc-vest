@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useRef } from "react";
 
 interface TokenBalance {
   contractAddress: string;
@@ -19,22 +19,24 @@ interface Data {
 export default function ContractEntry() {
   const [data, setData] = useState<Record<string, Data>>({});
   const [filterVestingish, setFilterVestingish] = useState(true);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch("/vesting.json");
-      const data: Record<string, Data> = await response.json();
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files![0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data: Record<string, Data> = JSON.parse(e.target!.result as string);
       setData(data);
     };
+    reader.readAsText(file);
+  };
 
-    fetchData();
-  }, []);
   const filteredData = filterVestingish
     ? Object.entries(data).filter(([key, value]) => value.is_vestingish)
     : Object.entries(data);
 
   return (
-    <div>
+    <div >
       <label>
         <input
           type="checkbox"
@@ -43,6 +45,11 @@ export default function ContractEntry() {
         />
         Filter by Vestingish
       </label>
+      <input
+        type="file"
+        ref={fileInput}
+        onChange={handleFileUpload}
+      />
       {filteredData.map(([key, value]) => (
         <div key={key}>
           <h2>
