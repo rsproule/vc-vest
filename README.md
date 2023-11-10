@@ -1,10 +1,11 @@
 # VC Vest
 
+> Query the chain for all contracts that may be vesting contracts holding some unclaimed tokens.
+
 <p align="center">
   <img src="./assets/vc-vest1.png" width="500">
 </p>
 
-Query the chain for all contracts that may be vesting contracts holding some unclaimed tokens.
 
 ## Methodology
 
